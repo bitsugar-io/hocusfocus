@@ -13,6 +13,7 @@ final class FocusController {
     private let feedback = PointerFeedback()
     private let logger = Logger(subsystem: AppControl.bundleID, category: "focus")
     private var hover = HoverState()
+    private var paneHover = TerminalPaneHover<PaneElement>()
     private var timer: Timer?
     private var cachedTarget: HoverWindow?
     private var cachedElement: AXUIElement?
@@ -47,6 +48,7 @@ final class FocusController {
 
     func reset() {
         hover.reset()
+        paneHover.reset()
         cachedTarget = nil
         cachedElement = nil
         lastResolveAttempt = -1
@@ -78,6 +80,7 @@ final class FocusController {
               let target = WindowAccess.window(at: point, config: config) else { return idle("No allowed window under pointer") }
         if cachedTarget?.identity != target.identity || cachedTarget?.bounds != target.bounds {
             hover.reset()
+            paneHover.reset()
             cachedElement = WindowAccess.element(for: target)
             lastResolveAttempt = now
             cachedTarget = target
@@ -88,8 +91,34 @@ final class FocusController {
         }
         guard let element = cachedElement else { return idle("Window not resolved through Accessibility", clearTarget: false) }
         if WindowAccess.isFocused(element, processID: target.identity.processID) {
+            if TerminalPaneAccess.supports(bundleID: target.app.bundleIdentifier, enabled: config.focus.orcaTerminalPanes) {
+                hover.reset()
+                let pane = TerminalPaneAccess.target(at: point, window: element, processID: target.identity.processID)
+                let state = paneHover.update(target: pane, now: now, delay: Double(config.focus.delayMS) / 1000,
+                    isFocused: { TerminalPaneAccess.isFocused($0, processID: target.identity.processID) },
+                    requestFocus: { input in
+                        // Re-hit-test at the deadline. Never focus a stale pane
+                        // after an overlay, tab switch, move, or resize.
+                        guard NSEvent.pressedMouseButtons == 0,
+                              NSEvent.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+                              let currentPoint = CGEvent(source: nil)?.location,
+                              let currentWindow = WindowAccess.window(at: currentPoint, config: self.config),
+                              currentWindow.identity == target.identity,
+                              WindowAccess.isFocused(element, processID: target.identity.processID),
+                              let current = TerminalPaneAccess.target(at: currentPoint, window: element, processID: target.identity.processID),
+                              current == pane, current.element == input else { return false }
+                        return TerminalPaneAccess.requestFocus(input)
+                    })
+                diagnosticState = state.rawValue
+                if paneHover.didConfirmFocusChange && config.feedback.cursorStyle != .off {
+                    feedback.showFocusAccent(style: config.feedback.cursorStyle)
+                }
+                return
+            }
+            paneHover.reset()
             return idle("Window already focused", clearTarget: false)
         }
+        paneHover.reset()
         switch hover.update(target: target.identity, now: now, delay: Double(config.focus.delayMS) / 1000) {
         case .idle, .waiting:
             diagnosticState = "Waiting for hover delay"

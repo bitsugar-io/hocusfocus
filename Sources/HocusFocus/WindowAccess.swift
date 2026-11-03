@@ -120,19 +120,19 @@ enum WindowAccess {
         return matches.count == 1 ? matches[0][kCGWindowNumber as String] as? UInt32 : nil
     }
 
-    private static func application(_ pid: Int32) -> AXUIElement {
+    static func application(_ pid: Int32) -> AXUIElement {
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.1)
         return app
     }
 
-    private static func attribute(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
+    static func attribute(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success else { return nil }
         return value
     }
 
-    private static func bounds(of window: AXUIElement) -> CGRect? {
+    static func bounds(of window: AXUIElement) -> CGRect? {
         guard let position = attribute(window, kAXPositionAttribute),
               CFGetTypeID(position) == AXValueGetTypeID(),
               let size = attribute(window, kAXSizeAttribute),
