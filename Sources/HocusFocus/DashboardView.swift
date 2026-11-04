@@ -147,6 +147,10 @@ struct DashboardView: View {
             Text("When off, focus changes without bringing the window above other windows.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            smallToggle("Focus Orca terminal panes", symbol: "rectangle.split.2x1", value: Binding(
+                get: { model.config.focus.orcaTerminalPanes },
+                set: { model.config.focus.orcaTerminalPanes = $0; model.save() }
+            ))
         }
         .padding(16).background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.06)))

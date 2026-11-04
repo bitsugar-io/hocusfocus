@@ -10,11 +10,12 @@ default:
 build:
     zsh scripts/build-app.sh
 
-# Run the configuration and hover state tests.
-test:
+# Run workflow, Swift, and CLI profile tests without launching the app.
+test scratch_path=(justfile_directory() / ".build"):
     zsh scripts/test-workflows.sh
     zsh scripts/test-package.sh
-    swift test --disable-xctest --disable-sandbox --cache-path "{{ justfile_directory() }}/.build/cache"
+    swift test --disable-xctest --disable-sandbox --cache-path "{{ justfile_directory() }}/.build/cache" --scratch-path "{{ scratch_path }}"
+    zsh scripts/test-cli-profiles.sh "$(swift build --show-bin-path --disable-sandbox --cache-path '{{ justfile_directory() }}/.build/cache' --scratch-path '{{ scratch_path }}')/hocusfocus"
 
 # Launch the existing app in the background without building.
 run:
@@ -35,6 +36,11 @@ clean:
 # Check the bundled example without starting focus switching.
 check-config:
     dist/hocusfocus config check --file config.example.toml
+    dist/hocusfocus config check --file config.agents.toml
+
+# Check configuration profiles using the built CLI without launching the app.
+test-cli-profiles:
+    zsh scripts/test-cli-profiles.sh
 
 # Check Markdown using the same markdownlint-cli2 version as CI.
 md-lint:
