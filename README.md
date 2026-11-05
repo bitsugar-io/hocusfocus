@@ -62,6 +62,10 @@ just start
 
 Click outside the panel or press Escape to close it.
 
+Opening an app through Spotlight or switching with Command-Tab keeps that app
+active while the pointer stays still. Move the pointer again to resume hover
+focus; the configured delay still applies.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development, testing, and troubleshooting.

@@ -1,3 +1,24 @@
+import CoreGraphics
+
+/// A stationary pointer is not a new request to focus a window. Keep an intent
+/// armed through the dwell delay, but discard it after keyboard/app activity.
+public struct PointerHoverIntent {
+    private var position: CGPoint?
+    private var armed = false
+    public init() {}
+
+    public mutating func reset(at point: CGPoint?) {
+        position = point
+        armed = false
+    }
+
+    public mutating func update(at point: CGPoint) -> Bool {
+        if let position, position != point { armed = true }
+        position = point
+        return armed
+    }
+}
+
 /// Uses monotonic timestamps supplied by the caller. Window identity includes the
 /// process and window ID so two windows in the same application stay distinct.
 public struct WindowIdentity: Equatable {

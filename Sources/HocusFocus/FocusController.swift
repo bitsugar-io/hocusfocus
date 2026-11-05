@@ -13,6 +13,7 @@ final class FocusController {
     private let feedback = PointerFeedback()
     private let logger = Logger(subsystem: AppControl.bundleID, category: "focus")
     private var hover = HoverState()
+    private var pointerIntent = PointerHoverIntent()
     private var timer: Timer?
     private var cachedTarget: HoverWindow?
     private var cachedElement: AXUIElement?
@@ -26,6 +27,13 @@ final class FocusController {
 
     func start() {
         let notifications = NSWorkspace.shared.notificationCenter
+        workspaceObservers.append(notifications.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            // Spotlight and Command-Tab must keep their selected app active
+            // until the user moves the pointer, even if a dwell was pending.
+            self?.waitForPointerMovement(at: CGEvent(source: nil)?.location)
+        })
         for name in [NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.willSleepNotification] {
             workspaceObservers.append(notifications.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 self?.sessionActive = false
@@ -46,11 +54,16 @@ final class FocusController {
     }
 
     func reset() {
-        hover.reset()
+        waitForPointerMovement(at: CGEvent(source: nil)?.location)
         cachedTarget = nil
         cachedElement = nil
         lastResolveAttempt = -1
         feedback.hide()
+    }
+
+    private func waitForPointerMovement(at point: CGPoint?) {
+        hover.reset()
+        pointerIntent.reset(at: point)
     }
 
     private func tick() {
@@ -74,8 +87,11 @@ final class FocusController {
         if !NSEvent.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             return idle("Modifier key held")
         }
-        guard let point = CGEvent(source: nil)?.location,
-              let target = WindowAccess.window(at: point, config: config) else { return idle("No allowed window under pointer") }
+        guard let point = CGEvent(source: nil)?.location else { return idle("Pointer unavailable") }
+        guard pointerIntent.update(at: point) else {
+            return idle("Waiting for pointer movement", clearTarget: false)
+        }
+        guard let target = WindowAccess.window(at: point, config: config) else { return idle("No allowed window under pointer") }
         if cachedTarget?.identity != target.identity || cachedTarget?.bounds != target.bounds {
             hover.reset()
             cachedElement = WindowAccess.element(for: target)
@@ -88,6 +104,9 @@ final class FocusController {
         }
         guard let element = cachedElement else { return idle("Window not resolved through Accessibility", clearTarget: false) }
         if WindowAccess.isFocused(element, processID: target.identity.processID) {
+            // Also cover keyboard switching between windows in the same app,
+            // which does not produce an application-activation notification.
+            waitForPointerMovement(at: point)
             return idle("Window already focused", clearTarget: false)
         }
         switch hover.update(target: target.identity, now: now, delay: Double(config.focus.delayMS) / 1000) {
@@ -95,6 +114,7 @@ final class FocusController {
             diagnosticState = "Waiting for hover delay"
             break
         case .focus:
+            waitForPointerMovement(at: point)
             feedback.hide()
             // Resolve again after the delay: a window may have closed or moved.
             guard let current = WindowAccess.window(at: point, config: config),

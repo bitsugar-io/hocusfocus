@@ -140,6 +140,10 @@ Automated checks do not prove that macOS delivers focus. Check interactively:
 6. Check another display, full-screen windows, pause/resume, and revoked access.
 7. Check launch at login and changes made through System Settings. Quit should
    exit without disabling the login item.
+8. Leave the pointer over Ghostty, then open Chrome through Spotlight or switch
+   with Command-Tab. Chrome must stay active until the pointer moves again.
+   Repeat during a pending hover delay and when switching Ghostty windows by
+   keyboard. Fresh pointer movement must start a new full hover delay.
 
 `dist/hocusfocus status` reports the hover state for diagnosis. Report automated
 and interactive verification separately.
