@@ -4,6 +4,20 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      # Only run when something that can change the result changes. Docs-only
+      # pull requests do not need the Swift build, and the lint, markdown and
+      # justfile workflows still run on them. No status check here is required
+      # by branch protection, so a skipped run does not block a merge.
+      - '**.swift'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - 'Resources/**'
+      - 'scripts/**'
+      - 'config.example.toml'
+      - 'justfile'
+      - '.mise.toml'
+      - '.github/workflows/swift.yml'
 permissions:
   contents: read
 concurrency:
