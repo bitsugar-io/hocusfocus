@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import HocusFocusCore
 
@@ -12,6 +13,14 @@ final class ConfigurationTests {
     @Test func testDefaultFileAndEmptyConfigUseSameDefaults() throws {
         #expect(try Configuration.parse(Configuration.defaultTOML) == Configuration())
         #expect(try Configuration.parse("") == Configuration())
+    }
+
+    @Test func testParsesFoundationBackedSource() throws {
+        // macOS 15 file reads can return lazily bridged strings, and TOMLDecoder traps on them.
+        let units = Array("# Bridged — longer than a small string\n[apps]\nmode = \"except\"\n".utf16)
+        let source = NSString(characters: units, length: units.count) as String
+        #expect(source.utf8.withContiguousStorageIfAvailable { _ in true } == nil)
+        #expect(try Configuration.parse(source).apps.mode == .except)
     }
 
     @Test func testRealTOMLFeaturesAndCaseInsensitiveMatching() throws {

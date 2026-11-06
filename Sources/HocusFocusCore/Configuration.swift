@@ -75,6 +75,9 @@ public struct Configuration: Decodable, Equatable {
     }
 
     public static func parse(_ source: String) throws -> Configuration {
+        // TOMLDecoder traps on bridged strings that lack contiguous UTF-8 storage.
+        var source = source
+        source.makeContiguousUTF8()
         let config = try TOMLDecoder().decode(Configuration.self, from: source)
         guard (0...10_000).contains(config.focus.delayMS) else {
             throw ConfigError.invalid("focus.delay_ms must be between 0 and 10000.")
