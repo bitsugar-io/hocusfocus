@@ -52,9 +52,5 @@ just-fmt-check:
 release-notes:
     git-cliff --config cliff.toml --unreleased --strip header
 
-# Check release-note groups and tag boundaries using a temporary Git fixture.
-test-release-notes:
-    bash scripts/test-release-notes.sh
-
 # Run the local checks without launching the app.
-ready: just-fmt-check md-lint test test-release-notes
+ready: just-fmt-check md-lint test

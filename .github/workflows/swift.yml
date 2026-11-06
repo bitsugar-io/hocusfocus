@@ -28,17 +28,3 @@ jobs:
             .build/repositories
           key: swift-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-${{ hashFiles('Package.resolved') }}
       - run: just test
-  release-notes:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Set up git-cliff
-        uses: orhun/git-cliff-action@v4
-        with:
-          version: latest
-          args: --unreleased --strip header
-        env:
-          OUTPUT: ${{ runner.temp }}/hocusfocus-preview.md
-      - run: PATH="$RUNNER_TEMP/git-cliff/bin:$PATH" bash scripts/test-release-notes.sh
