@@ -1,31 +1,55 @@
-# Agent guidance
+# AGENTS.md
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing code and follow
-[AI_POLICY.md](AI_POLICY.md) when preparing outside contributions.
+Test: `just test` | Before committing: `just ready`
 
-## Tools and repository boundaries
-
-- Use `fd`, not `find`; `jaq`, not `jq`; and `rg`, not `grep`.
-- Never commit unless explicitly asked.
-- Never commit directly to `main`; create a branch first.
-- Do not push, tag, or publish without explicit instruction.
-- Do not start, stop, or restart the app unless the user asks you to do so.
-- Do not reset Accessibility, register login items, or change the keychain as a
-  side effect of tests. Use injected services instead.
-- Spawn subagents only when explicitly requested.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. It covers setup, configuration,
+Accessibility and signing, project structure, code standards, testing and manual
+validation, branching, commit messages, pull requests and releases, and it links
+the [AI policy](AI_POLICY.md). All of it applies to agents exactly as it applies
+to people. This file carries only what is specific to agents.
 
 ## Running tools
 
-Use `just` for the documented workflows. `just run` never builds; `just stop`
-never builds; `just start` builds then launches. Avoid the user's `.build` lock
-by using an isolated SwiftPM scratch directory during concurrent app testing.
+Invoke tools through `mise`, not from your path:
 
-## Changes and verification
+```bash
+mise exec -- just test
+```
 
-Preserve TOML compatibility and `io.bitsugar.hocusfocus` across app metadata,
-signing, CLI control, and permission commands. Keep the focus spark and shared
-purple palette consistent. Preserve third-party license notices.
+`mise` is active in a person's shell and supplies the versions `.mise.toml`
+declares. An agent's shell has no activation, so a bare `just` resolves to
+whatever is installed globally, usually an older version.
 
-Report changed behavior, checks run, and limitations. Keep compilation, mocked
-API tests, and real macOS focus/permission checks distinct. A menu bar app that
-starts is not evidence that focus follows the pointer.
+The symptom is a check that fails here and passes in continuous integration, on
+a file nobody edited. When that happens, establish which version ran before
+treating the failure as real.
+
+Search with `fd`, `rg` and `jaq` rather than `find`, `grep` and `jq`. `fd` and
+`rg` skip the ignored `.build/` and `dist/` trees.
+
+## The running app
+
+The app in `dist/` is usually the one the user is running. Do not start, stop or
+restart it unless the user asks, even where CONTRIBUTING.md says to run
+`just stop` and `just start` after a change. A rebuilt bundle can need
+Accessibility approval again, and only the user can give it.
+
+Spawn subagents only when the user asks. Parallel SwiftPM runs contend for the
+same `.build` lock.
+
+## Reporting what you checked
+
+Say what changed, which checks ran, and what you could not check. The manual
+validation in CONTRIBUTING.md needs a person moving the pointer, so list it as
+outstanding. A menu bar app that starts is not evidence that focus follows the
+pointer.
+
+## Commit trailer
+
+When committing via Claude Code, end the message with:
+
+```text
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
