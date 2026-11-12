@@ -61,6 +61,7 @@ final class ConfigurationTests {
             "[focus]\ndelay_ms = '400'", "[focus]\ndelay_ms = 1.5",
             "[apps]\nmode = 'ignore'", "[apps]\nlist = [' ']",
             "[focus]\ndleay_ms = 400", "[unknown]\nx = true",
+            "[focus]\norca_terminal_panes = 'yes'",
             "[feedback]\nshow_countdown = 'yes'", "not valid toml",
             "[focus]\ndelay_ms = 100\ndelay_ms = 200",
         ] {
@@ -71,6 +72,15 @@ final class ConfigurationTests {
     @Test func testDelayBoundaries() throws {
         #expect(try Configuration.parse("[focus]\ndelay_ms = 0").focus.delayMS == 0)
         #expect(try Configuration.parse("[focus]\ndelay_ms = 10000").focus.delayMS == 10000)
+    }
+
+    @Test func paneFocusIsOptInAndRoundTrips() throws {
+        #expect(!Configuration().focus.orcaTerminalPanes)
+        #expect(!Configuration.preset(.standard).focus.orcaTerminalPanes)
+        #expect(!Configuration.defaultTOML.contains("orca_terminal_panes = true"))
+        let config = try Configuration.parse("[focus]\norca_terminal_panes = true")
+        #expect(config.focus.orcaTerminalPanes)
+        #expect(try Configuration.parse(config.toml()) == config)
     }
 }
 

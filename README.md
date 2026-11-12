@@ -66,6 +66,16 @@ Opening an app through Spotlight or switching with Command-Tab keeps that app
 active while the pointer stays still. Move the pointer again to resume hover
 focus; the configured delay still applies.
 
+### Orca and coding agents
+
+For an Orca-first setup with OpenCode, Claude Code, and Codex, initialize with
+`dist/hocusfocus config init --profile agents` after building. This opts into
+Orca and common terminal/editor host windows without changing upstream defaults.
+The preset also enables focus-only Accessibility targeting for Orca terminal
+panes, including its in-app floating workspace. This can be toggled separately
+with **Focus Orca terminal panes**. See [the agent workflow guide](AGENT_WORKFLOW.md)
+for setup, scope, and verification.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development, testing, and troubleshooting.

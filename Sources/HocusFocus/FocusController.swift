@@ -14,6 +14,9 @@ final class FocusController {
     private let logger = Logger(subsystem: AppControl.bundleID, category: "focus")
     private var hover = HoverState()
     private var pointerIntent = PointerHoverIntent()
+    private var paneHover = TerminalPaneHover<PaneElement>()
+    private let paneScheduler = TerminalPaneScheduler<PaneLookupKey, PaneElement>(
+        queue: DispatchQueue(label: "\(AppControl.bundleID).orca-panes", qos: .userInitiated))
     private var timer: Timer?
     private var cachedTarget: HoverWindow?
     private var cachedElement: AXUIElement?
@@ -55,6 +58,7 @@ final class FocusController {
 
     func reset() {
         waitForPointerMovement(at: CGEvent(source: nil)?.location)
+        resetPanes()
         cachedTarget = nil
         cachedElement = nil
         lastResolveAttempt = -1
@@ -94,6 +98,7 @@ final class FocusController {
         guard let target = WindowAccess.window(at: point, config: config) else { return idle("No allowed window under pointer") }
         if cachedTarget?.identity != target.identity || cachedTarget?.bounds != target.bounds {
             hover.reset()
+            resetPanes()
             cachedElement = WindowAccess.element(for: target)
             lastResolveAttempt = now
             cachedTarget = target
@@ -104,11 +109,17 @@ final class FocusController {
         }
         guard let element = cachedElement else { return idle("Window not resolved through Accessibility", clearTarget: false) }
         if WindowAccess.isFocused(element, processID: target.identity.processID) {
+            if TerminalPaneAccess.supports(bundleID: target.app.bundleIdentifier, enabled: config.focus.orcaTerminalPanes) {
+                trackPane(at: point, target: target, element: element, now: now)
+                return
+            }
             // Also cover keyboard switching between windows in the same app,
             // which does not produce an application-activation notification.
             waitForPointerMovement(at: point)
+            resetPanes()
             return idle("Window already focused", clearTarget: false)
         }
+        resetPanes()
         switch hover.update(target: target.identity, now: now, delay: Double(config.focus.delayMS) / 1000) {
         case .idle, .waiting:
             diagnosticState = "Waiting for hover delay"
@@ -131,6 +142,55 @@ final class FocusController {
                 diagnosticState = "Focus request sent"
                 if config.feedback.cursorStyle != .off { feedback.showFocusAccent(style: config.feedback.cursorStyle) }
             }
+        }
+    }
+
+    private func resetPanes() {
+        paneHover.reset()
+        paneScheduler.invalidate()
+    }
+
+    /// The Accessibility tree walk and the focus request both run on a background
+    /// queue, so a slow Orca never stalls this timer. Everything here only reads
+    /// results that are already finished.
+    private func trackPane(at point: CGPoint, target: HoverWindow, element: AXUIElement, now: Double) {
+        let processID = target.identity.processID
+        let key = PaneLookupKey(point: point, window: target.identity, bounds: target.bounds)
+        let lookup = paneScheduler.poll(key: key) {
+            TerminalPaneAccess.target(at: point, window: element, processID: processID)
+        }
+        guard case .ready(let pane) = lookup else {
+            diagnosticState = "Looking up Orca terminal pane"
+            return
+        }
+        let config = self.config
+        let logger = self.logger
+        let state = paneHover.update(target: pane, now: now, delay: Double(config.focus.delayMS) / 1000,
+            isFocused: { TerminalPaneAccess.isFocused($0, processID: processID) },
+            requestFocus: { _ in
+                guard let pane else { return false }
+                return self.paneScheduler.requestFocus(on: pane, revalidate: {
+                    // Hit-test again at the deadline. Never focus a stale pane
+                    // after an overlay, tab switch, move, or resize.
+                    guard NSEvent.pressedMouseButtons == 0,
+                          NSEvent.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+                          let currentPoint = CGEvent(source: nil)?.location,
+                          let currentWindow = WindowAccess.window(at: currentPoint, config: config),
+                          currentWindow.identity == target.identity,
+                          WindowAccess.isFocused(element, processID: processID) else { return nil }
+                    return TerminalPaneAccess.target(at: currentPoint, window: element, processID: processID)
+                }, perform: { input in
+                    if !TerminalPaneAccess.requestFocus(input) {
+                        logger.error("Orca terminal pane rejected the focus request")
+                    }
+                })
+            })
+        diagnosticState = state.rawValue
+        // Same rule as for windows: once the pane under the pointer has focus, a
+        // keyboard switch must not be undone until the pointer moves again.
+        if state == .focused { waitForPointerMovement(at: point) }
+        if paneHover.didConfirmFocusChange && config.feedback.cursorStyle != .off {
+            feedback.showFocusAccent(style: config.feedback.cursorStyle)
         }
     }
 
