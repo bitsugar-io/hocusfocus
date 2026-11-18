@@ -3,6 +3,9 @@
 delay_ms = 400
 # Set false to focus without bringing the window above other windows.
 raise_window = true
+# Optional Orca canvas-pane focus, including its in-app floating workspace.
+# Uses focus-only Accessibility requests, never simulated clicks or typing.
+orca_terminal_panes = false
 
 # "only" focuses listed apps; "except" focuses everything else.
 # Names are case-insensitive. Bundle IDs are more reliable than names.

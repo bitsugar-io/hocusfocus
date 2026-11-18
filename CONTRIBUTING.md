@@ -109,16 +109,15 @@ just just-fmt-check
 just md-lint
 ```
 
-`just test` runs workflow tests using fake tools, then the Swift Testing suites.
+`just test` runs workflow tests using fake tools, the Swift Testing suites, then
+configuration-profile checks using the built CLI.
 Use injected services for login-item and permission tests. Tests must not
 register real login items, prompt for permissions, or move focus between windows.
 
 Use an isolated scratch directory if someone is testing the app while you work:
 
 ```sh
-swift test --disable-xctest --disable-sandbox \
-  --cache-path "$PWD/.build/cache" \
-  --scratch-path /tmp/hocusfocus-tests
+just test /tmp/hocusfocus-tests
 ```
 
 `just build` checks packaging but does not launch the app. The packaging script

@@ -2,18 +2,41 @@ import Foundation
 import TOMLDecoder
 
 public struct Configuration: Decodable, Equatable {
+    public enum Profile: String, CaseIterable {
+        case standard, agents
+    }
+
+    /// Agent CLIs inherit their host application's windows; process names and
+    /// terminal titles are deliberately not used as focus identifiers.
+    public static func preset(_ profile: Profile) -> Configuration {
+        var config = Configuration()
+        if profile == .agents {
+            config.focus.orcaTerminalPanes = true
+            config.apps.list = [
+                "com.stablyai.orca", "com.cmuxterm.app", "com.mitchellh.ghostty",
+                "com.apple.Terminal", "com.googlecode.iterm2",
+                "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92",
+                "OpenCode", "com.anthropic.claudefordesktop", "Codex",
+            ]
+        }
+        return config
+    }
+
     public struct Focus: Decodable, Equatable {
         public var delayMS: Int = 400
         public var raiseWindow: Bool = true
+        public var orcaTerminalPanes: Bool = false
         enum CodingKeys: String, CodingKey {
             case delayMS = "delay_ms", raiseWindow = "raise_window"
+            case orcaTerminalPanes = "orca_terminal_panes"
         }
         public init() {}
         public init(from decoder: Decoder) throws {
-            try rejectUnknownKeys(decoder, allowed: ["delay_ms", "raise_window"])
+            try rejectUnknownKeys(decoder, allowed: ["delay_ms", "raise_window", "orca_terminal_panes"])
             let container = try decoder.container(keyedBy: CodingKeys.self)
             delayMS = try container.decodeIfPresent(Int.self, forKey: .delayMS) ?? 400
             raiseWindow = try container.decodeIfPresent(Bool.self, forKey: .raiseWindow) ?? true
+            orcaTerminalPanes = try container.decodeIfPresent(Bool.self, forKey: .orcaTerminalPanes) ?? false
         }
     }
 
@@ -118,6 +141,7 @@ public struct Configuration: Decodable, Equatable {
         [focus]
         delay_ms = \(focus.delayMS)
         raise_window = \(focus.raiseWindow)
+        orca_terminal_panes = \(focus.orcaTerminalPanes)
 
         [apps]
         mode = "\(apps.mode.rawValue)"

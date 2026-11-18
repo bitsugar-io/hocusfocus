@@ -3,6 +3,8 @@ import ApplicationServices
 import ArgumentParser
 import HocusFocusCore
 
+extension Configuration.Profile: ExpressibleByArgument {}
+
 struct HocusFocusCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "hocusfocus", abstract: "Focus follows your mouse. On your timing.",
@@ -94,12 +96,15 @@ struct Config: ParsableCommand {
     }
     struct Initialize: ParsableCommand {
         static let configuration = CommandConfiguration(commandName: "init", abstract: "Write default settings; refuse to overwrite an existing file.")
+        @Option(help: "Settings preset: standard (Ghostty only) or agents (Orca and terminal hosts for OpenCode, Claude Code, and Codex).")
+        var profile: Configuration.Profile = .standard
         @OptionGroup var output: OutputOptions
         @OptionGroup var location: FileOptions
         func run() throws {
             let url = location.url
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try Data(Configuration.defaultTOML.utf8).write(to: url, options: .withoutOverwriting)
+            let source = try profile == .standard ? Configuration.defaultTOML : Configuration.preset(profile).toml()
+            try Data(source.utf8).write(to: url, options: .withoutOverwriting)
             try output.renderer.section("Configuration created", rows: [("path", url.path)], value: ["path": url.path])
         }
     }
@@ -140,6 +145,7 @@ private struct ConfigSummary: Encodable {
     let path: String
     let delayMS: Int
     let raiseWindow: Bool
+    let orcaTerminalPanes: Bool
     let mode: String
     let apps: [String]
     let cursorStyle: String
@@ -148,6 +154,7 @@ private struct ConfigSummary: Encodable {
         self.path = path
         delayMS = config.focus.delayMS
         raiseWindow = config.focus.raiseWindow
+        orcaTerminalPanes = config.focus.orcaTerminalPanes
         mode = config.apps.mode.rawValue
         apps = config.apps.list
         cursorStyle = config.feedback.cursorStyle.rawValue

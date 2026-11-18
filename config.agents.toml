@@ -1,0 +1,26 @@
+# Orca-first window focus for OpenCode, Claude Code, and Codex.
+# These are host apps, not agent executable names or terminal titles.
+[focus]
+delay_ms = 400
+raise_window = true
+orca_terminal_panes = true
+
+[apps]
+mode = "only"
+# Terminal/editor hosts, then standalone OpenCode, Claude, and Codex apps.
+# Display names cover desktop builds whose bundle IDs vary by release channel.
+list = [
+  "com.stablyai.orca",
+  "com.cmuxterm.app",
+  "com.mitchellh.ghostty",
+  "com.apple.Terminal",
+  "com.googlecode.iterm2",
+  "com.microsoft.VSCode",
+  "com.todesktop.230313mzl4w4u92",
+  "OpenCode",
+  "com.anthropic.claudefordesktop",
+  "Codex",
+]
+
+[feedback]
+cursor_style = "sweep"
