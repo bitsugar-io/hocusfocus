@@ -23,8 +23,8 @@ Ghostty windows, with a hover delay I could tune from the menu bar.
 
 <table align="center">
   <tr>
-    <td align="center" width="50%"><a href="asset/configuration.png"><img src="asset/configuration.png" width="100%" alt="HocusFocus configuration with hover delay presets and app filters"></a></td>
-    <td align="center" width="50%"><a href="asset/cursor-effects.gif"><img src="asset/cursor-effects.gif" width="100%" alt="Animated comparison of Off, Sweep, Glow, and Spark cursor effects"></a></td>
+    <td align="center" width="50%"><a href="asset/configuration.png"><img src="asset/configuration.png" width="260" alt="HocusFocus configuration with hover delay presets and app filters"></a></td>
+    <td align="center" width="50%"><a href="asset/cursor-effects.gif"><img src="asset/cursor-effects.gif" width="260" alt="Animated comparison of Off, Sweep, Glow, and Spark cursor effects"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>Configuration</sub></td>
